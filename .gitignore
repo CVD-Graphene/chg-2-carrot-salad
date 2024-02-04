@@ -1,0 +1,17 @@
+# Python
+__pycache__
+venv
+images
+logs
+recipes
+
+# PyCharm files
+idea
+.idea/
+*__pycache__*
+.idea/workspace
+
+# Data files
+__data
+*.txt
+*.DS_Store
