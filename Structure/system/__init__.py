@@ -22,23 +22,23 @@ from .effects import (
     ChangePumpManageStateEffect,
     SetTargetTemperatureSystemEffect,
     SetIsTemperatureRegulationActiveEffect,
-    SetTemperaturePidSpeedSystemEffect, ChangeTmpPumpStateEffect,
+    SetTemperaturePidSpeedSystemEffect,
+    ChangeTmpPumpStateEffect,
 )
 from coregraphene.components.controllers import (
     AbstractController,
     AccurateVakumetrController,
     ValveController,
-    CurrentSourceController,
     PyrometerTemperatureController,
-    SeveralRrgAdcDacController,
     DigitalFuseController,
-    BackPressureValveController,
-    VakumetrAdcController, BhRrgController, SeveralRrgModbusController, RrgModbusController, BhVakumetrController,
+    SeveralRrgModbusController,
+    RrgModbusController,
     TetronCurrentSourceController,
+    GWInstekCurrentSourceController,
 )
 from coregraphene.system import BaseSystem
 from coregraphene.conf import settings
-from coregraphene.utils import get_available_ttyusb_ports, get_available_ttyusb_port_by_usb
+from coregraphene.utils import get_available_ttyusb_port_by_usb
 
 VALVES_CONFIGURATION = settings.VALVES_CONFIGURATION
 LOCAL_MODE = settings.LOCAL_MODE
@@ -64,6 +64,7 @@ class AppSystem(BaseSystem):
         },
         'current_source': {
             # 'port_communicator': settings.CURRENT_SOURCE_COMMUNICATOR_PORT,
+            'port': settings.CURRENT_SOURCE_USB_PORT,
             'baudrate': settings.CURRENT_SOURCE_BAUDRATE,
             'timeout': settings.CURRENT_SOURCE_TIMEOUT,
         },
@@ -84,7 +85,7 @@ class AppSystem(BaseSystem):
     _ports_attr_names = {
         'vakumetr': 'vakumetr_port',
         'rrg': 'rrg_port',
-        'current_source': 'current_source_port',
+        # 'current_source': 'current_source_port',
         'pyrometer': 'pyrometer_temperature_port',
         # 'throttle': 'back_pressure_valve_port',
     }
@@ -98,20 +99,18 @@ class AppSystem(BaseSystem):
     }
 
     def _determine_attributes(self):
-        used_ports = []
         self.vakumetr_port = None
         self.rrg_port = None
-        self.current_source_port = None
+        # self.current_source_port = None
         self.pyrometer_temperature_port = None
         self.back_pressure_valve_port = None
 
         # return
         self._controllers_check_classes = {
-            # 'throttle': BackPressureValveController,
             'rrg': RrgModbusController,
             'vakumetr': AccurateVakumetrController,
             'pyrometer': PyrometerTemperatureController,
-            'current_source': TetronCurrentSourceController,
+            # 'current_source': TetronCurrentSourceController,
         }
 
         for controller_code, port_name_attr in self._ports_attr_names.items():
@@ -127,20 +126,18 @@ class AppSystem(BaseSystem):
             "|> FOUND PORTS:",
             "vakumetr:", self.vakumetr_port,
             "rrg:", self.rrg_port,
-            'current_source:', self.current_source_port,
+            # 'current_source:', self.current_source_port,
             "pyrometer", self.pyrometer_temperature_port,
-            # 'throttle', self.back_pressure_valve_port,
         )
         assert self.vakumetr_port is not None
         assert self.rrg_port is not None
-        assert self.current_source_port is not None
+        # assert self.current_source_port is not None
         assert self.pyrometer_temperature_port is not None
-        # assert self.back_pressure_valve_port is not None
 
         self.ports = {
             'vakumetr': self.vakumetr_port,
             'rrg': self.rrg_port,
-            'current_source': self.current_source_port,
+            # 'current_source': self.current_source_port,
             'pyrometer': self.pyrometer_temperature_port,
             # 'throttle': self.back_pressure_valve_port,
         }
@@ -153,11 +150,6 @@ class AppSystem(BaseSystem):
             port=self.vakumetr_port,
             **self._default_controllers_kwargs.get('vakumetr'),
         )
-        # self.accurate_vakumetr_controller = BhVakumetrController(
-        #     # port=self.vakumetr_port,
-        #     **self._default_controllers_kwargs.get('bh_rrg'),
-        #     get_potential_port=self.get_potential_controller_port_1,
-        # )
         self.pyrometer_temperature_controller = PyrometerTemperatureController(
             get_potential_port=self.get_potential_controller_port_1,
             port=self.pyrometer_temperature_port,
@@ -168,10 +160,6 @@ class AppSystem(BaseSystem):
             port=settings.AIR_VALVE_CONFIGURATION['PORT'],
         )
 
-        # self.bh_rrg_controller = BhRrgController(
-        #     get_potential_port=self.get_potential_controller_port_1,
-        #     **self._default_controllers_kwargs.get('bh_rrg'),
-        # )
         self.rrgs_controller = SeveralRrgModbusController(
             config=VALVES_CONFIGURATION,
             get_potential_port=self.get_potential_controller_port_1,
@@ -199,28 +187,12 @@ class AppSystem(BaseSystem):
         for i, valve_conf in enumerate(VALVES_CONFIGURATION):
             self._valves[i] = ValveController(port=valve_conf["PORT"])
 
-        # self.rrgs_controller = SeveralRrgAdcDacController(
-        #     config=VALVES_CONFIGURATION,
-        #     read_channel=settings.RRG_SPI_READ_CHANNEL,
-        #     write_channel=settings.RRG_SPI_WRITE_CHANNEL,
-        #     speed=settings.RRG_SPI_SPEED,
-        #     read_device=settings.RRG_SPI_READ_DEVICE,
-        #     write_device=settings.RRG_SPI_WRITE_DEVICE,
-        # )
-
-        # self.gases_pressure_controller = VakumetrAdcController(
-        #     config=VALVES_CONFIGURATION,
-        #     channel=settings.VAKUMETR_SPI_READ_CHANNEL,
-        #     speed=settings.VAKUMETR_SPI_SPEED,
-        #     device=settings.VAKUMETR_SPI_READ_DEVICE,
-        # )
-
         self._digital_fuses = {}
         for i, port in enumerate(settings.DIGITAL_FUSE_PORTS):
             self._digital_fuses[i] = DigitalFuseController(port=port)
 
-        self.current_source_controller = TetronCurrentSourceController(
-            port=self.current_source_port,
+        self.current_source_controller = GWInstekCurrentSourceController(
+            # port=self.current_source_port,
             **self._default_controllers_kwargs.get('current_source'),
         )
 
