@@ -18,5 +18,5 @@ class ShowPressureBlock(ParameterLatexLabel):
         # self.setGraphicsEffect(shadow)
 
     def set_value(self, value):
-        self.value = str(value)
+        self.value = str(round(value, 1))
         self.setText(f"P = ${value}$ mbar")

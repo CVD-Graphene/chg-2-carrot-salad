@@ -18,12 +18,12 @@ class PressureControlBlock(QWidget):
         self.setStyleSheet(styles.container)
         self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
 
-        self.show_pressure_block = ShowPressureBlock()
+        self.show_pressure_block = ShowPressureBlock(digits_round=1)
         self.layout.addWidget(self.show_pressure_block,
                               alignment=QtCore.Qt.AlignTop
                               )
 
-        self.show_temperature = ShowTemperatureBlock()
+        self.show_temperature = ShowTemperatureBlock(digits_round=1)
         self.layout.addWidget(self.show_temperature,
                               alignment=QtCore.Qt.AlignTop
                               )
